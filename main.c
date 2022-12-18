@@ -62,7 +62,7 @@ void* generate_car(void* arg) {
 
         /**    wait 'till the square is free   */
         // Try to acquire the mutex of the next square
-        int res = pthread_mutex_trylock(&mutex[generator_pos]);
+        int res = pthread_mutex_lock(&mutex[generator_pos]);
         if (res == 0) {
             // Mutex was acquired successfully, move the car to the next square
             traffic_circle[generator_pos] = '*';
@@ -99,10 +99,9 @@ void* move_car(void* arg) {
         int x = cars[id].pos;
         // Continue moving until the car reaches a sink
         while (x % (N-1) || just_created ) {
-
             /**     wait 'till the square is free   */
             // Try to acquire the mutex of the next square
-            int res = pthread_mutex_trylock(&mutex[x+1]);
+            int res = pthread_mutex_lock(&mutex[x+1]);
             if (res == 0) {
                 just_created = 0;
 
@@ -117,6 +116,7 @@ void* move_car(void* arg) {
                 traffic_circle[(x + 1) % (4*(N-1))] = '*';
                 cars[id].pos = (x + 1) % (4*(N-1));
 
+                x = cars[id].pos;
 
             }
             // sleep until next step
@@ -137,18 +137,22 @@ void* move_car(void* arg) {
         } else{
             /**     wait 'till the square is free   */
             // Try to acquire the mutex of the next square
-            int res = pthread_mutex_trylock(&mutex[x+1]);
+            int res = pthread_mutex_lock(&mutex[x+1]);
             if (res == 0) {
                 just_created = 0;
-                // Mutex was acquired successfully, move the car to the next square
-                cars[id].pos = (x + 1) % (4*(N-1));
-                traffic_circle[(x + 1) % (4*(N-1))] = '*';
 
+                // Mutex was acquired successfully, move the car to the next square
                 //leave a blank spot behind
                 traffic_circle[x] = ' ';
                 // now the spot behind is free to use
                 pthread_mutex_unlock(&mutex[x]);
-                x =(x + 1) % (4*(N-1));
+
+                traffic_circle[(x + 1) % (4*(N-1))] = '*';
+
+                cars[id].pos = (x + 1) % (4*(N-1));
+
+
+
 
             }
             // sleep until next step
@@ -175,7 +179,7 @@ void* printer(void* arg) {
 
 
         // wait
-        usleep(SIM_TIME*10000000/10);
+        usleep(SIM_TIME*1000000/10);
 
         //traffic_circle looks like [**   *  * *] of len: 4(N-1)
 
