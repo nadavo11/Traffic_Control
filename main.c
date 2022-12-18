@@ -71,7 +71,7 @@ void* generate_car(void* arg) {
     }
 
     // Create a new thread for the car
-    pthread_create(&cars[++car_ID].thread_id,NULL, move_car,(void*)&car);
+    pthread_create(&cars[++car_ID].thread_id,NULL, move_car,(void*)&car_ID);
     return NULL;
 }
 
@@ -83,11 +83,11 @@ void* generate_car(void* arg) {
 
 // Function to simulate the movement of a car around the traffic circle
 void* move_car(void* arg) {
-    car_t* car = (car_t*)arg;
+    int id = *(int*)arg;
     int just_created = 1;
     int alive = 1;
     while(alive){
-        int x = car->pos;
+        int x = cars[id].pos;
         // Continue moving until the car reaches a sink
         while (x % (N-1) || just_created ) {
 
@@ -97,7 +97,7 @@ void* move_car(void* arg) {
             if (res == 0) {
                 just_created = 0;
                 // Mutex was acquired successfully, move the car to the next square
-                car->pos = (x + 1) % N;
+                cars[id].pos = (x + 1) % N;
                 traffic_circle[(x + 1) % N] = '*';
 
                 //leave a blank spot behind
@@ -144,7 +144,7 @@ void* printer(void* arg) {
 
 
         // wait
-        usleep(SIM_TIME*1000000/10);
+        usleep(SIM_TIME*10000000/10);
 
         //traffic_circle looks like [**   *  * *] of len: 4(N-1)
 
