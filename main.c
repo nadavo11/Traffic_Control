@@ -33,7 +33,6 @@ typedef struct {
 // from now, traffic_circle is a char arr
 char traffic_circle[4*N - 4];
 car_t cars[MAX_CARS];
-int car_ID = 0;
 pthread_mutex_t mutex[4*N - 4];
 pthread_t generators[4];
 pthread_t Printer;
@@ -46,32 +45,42 @@ pthread_t Printer;
  *                                                      *
  * ******************************************************/
 void* generate_car(void* arg) {
-
+    int I = *(int*)arg;
+    int car_ID = I;
 
     // Select a generator randomly between the positions: [0,N-1, 2*(N-1), 3*(N-1)]
-    int generator_pos = *(int*)arg*(N-1) % (4*N-4);
+    int generator_pos = I*(N-1) % (4*N-4);
+    while(1){
+        // Select a random time to wait before generating a new car
+        int inter_arrival_time =
+                rand() % (MAX_INTER_ARRIVAL_IN_NS - MIN_INTER_ARRIVAL_IN_NS) + MIN_INTER_ARRIVAL_IN_NS;
 
-    // Select a random time to wait before generating a new car
-    int inter_arrival_time = rand() % (MAX_INTER_ARRIVAL_IN_NS - MIN_INTER_ARRIVAL_IN_NS + 1) + MIN_INTER_ARRIVAL_IN_NS;
+        usleep(inter_arrival_time/1000);
 
-    usleep(inter_arrival_time);
+        // Create a new car struct
+        //car_t *car = &cars[++car_ID];
 
-    // Create a new car struct
-    car_t *car = &cars[++car_ID];
+        /**    wait 'till the square is free   */
+        // Try to acquire the mutex of the next square
+        int res = pthread_mutex_trylock(&mutex[generator_pos]);
+        if (res == 0) {
+            // Mutex was acquired successfully, move the car to the next square
+            traffic_circle[generator_pos] = '*';
 
-    /**    wait 'till the square is free   */
-    // Try to acquire the mutex of the next square
-    int res = pthread_mutex_trylock(&mutex[generator_pos]);
-    if (res == 0) {
-        // Mutex was acquired successfully, move the car to the next square
-        traffic_circle[generator_pos] = '*';
+            // set the position of the new car
+            cars[car_ID].pos = generator_pos;
 
-        // set the position of the new car
-        cars[++car_ID].pos = generator_pos;
+            // Create a new thread for the car
+            pthread_create(&cars[car_ID].thread_id, NULL, move_car, (void *) &car_ID);
+
+            car_ID +=4;
+
+        }
+
+        if(car_ID>0xFFFFFF){
+            break;
+        }
     }
-
-    // Create a new thread for the car
-    pthread_create(&cars[++car_ID].thread_id,NULL, move_car,(void*)&car_ID);
     return NULL;
 }
 
@@ -96,19 +105,22 @@ void* move_car(void* arg) {
             int res = pthread_mutex_trylock(&mutex[x+1]);
             if (res == 0) {
                 just_created = 0;
-                // Mutex was acquired successfully, move the car to the next square
-                cars[id].pos = (x + 1) % N;
-                traffic_circle[(x + 1) % N] = '*';
 
+                // Mutex was acquired successfully,
                 //leave a blank spot behind
                 traffic_circle[x] = ' ';
+
                 // now the spot behind is free to use
                 pthread_mutex_unlock(&mutex[x]);
-                x++;
+
+                //move the car to the next square
+                traffic_circle[(x + 1) % (4*(N-1))] = '*';
+                cars[id].pos = (x + 1) % (4*(N-1));
+
 
             }
             // sleep until next step
-            usleep(INTER_MOVES_IN_NS);
+            usleep(INTER_MOVES_IN_NS/1000);
         }
 
         /** if we reach a sink*/
@@ -122,6 +134,25 @@ void* move_car(void* arg) {
             pthread_exit(NULL);
             alive = 0;
 
+        } else{
+            /**     wait 'till the square is free   */
+            // Try to acquire the mutex of the next square
+            int res = pthread_mutex_trylock(&mutex[x+1]);
+            if (res == 0) {
+                just_created = 0;
+                // Mutex was acquired successfully, move the car to the next square
+                cars[id].pos = (x + 1) % (4*(N-1));
+                traffic_circle[(x + 1) % (4*(N-1))] = '*';
+
+                //leave a blank spot behind
+                traffic_circle[x] = ' ';
+                // now the spot behind is free to use
+                pthread_mutex_unlock(&mutex[x]);
+                x =(x + 1) % (4*(N-1));
+
+            }
+            // sleep until next step
+            usleep(INTER_MOVES_IN_NS/1000);
         }
 
     }
@@ -188,10 +219,6 @@ void* printer(void* arg) {
     }
 
 }
-
-
-
-
 
 
 int main(){
