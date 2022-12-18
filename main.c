@@ -61,7 +61,13 @@ void* generate_car(void* arg) {
         //car_t *car = &cars[++car_ID];
 
         /**    wait 'till the square is free   */
-        // Try to acquire the mutex of the next square
+        // Try to acquire the mutex of the next square 🐞🐞🐞🐞
+
+        //🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞
+        //HERE IS THE BUG!! the generator thread is locking it's
+        //location, no one else can unlock it!! so when the car tries
+        //to unlock it fails, thats why we're in a deadlock
+        //🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞🐞
         int res = pthread_mutex_lock(&mutex[generator_pos]);
         if (res == 0) {
             // Mutex was acquired successfully, move the car to the next square
@@ -101,7 +107,7 @@ void* move_car(void* arg) {
         while (x % (N-1) || just_created ) {
             /**     wait 'till the square is free   */
             // Try to acquire the mutex of the next square
-            int res = pthread_mutex_lock(&mutex[x+1]);
+            int res = pthread_mutex_lock(&mutex[(x+1)%(4*(N-1))]);
             if (res == 0) {
                 just_created = 0;
 
@@ -137,7 +143,7 @@ void* move_car(void* arg) {
         } else{
             /**     wait 'till the square is free   */
             // Try to acquire the mutex of the next square
-            int res = pthread_mutex_lock(&mutex[x+1]);
+            int res = pthread_mutex_lock(&mutex[(x+1)%(4*(N-1))]);
             if (res == 0) {
                 just_created = 0;
 
