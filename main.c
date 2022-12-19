@@ -77,6 +77,7 @@ void* generate_car(void* arg) {
             cars[car_ID].pos = generator_pos;
 
             // Create a new thread for the car
+            pthread_mutex_unlock(&mutex[generator_pos]);
             pthread_create(&cars[car_ID].thread_id, NULL, move_car, (void *) &car_ID);
 
             car_ID +=4;
@@ -99,6 +100,8 @@ void* generate_car(void* arg) {
 // Function to simulate the movement of a car around the traffic circle
 void* move_car(void* arg) {
     int id = *(int*)arg;
+
+    pthread_mutex_lock(&mutex[cars[id].pos]);
     int just_created = 1;
     int alive = 1;
     while(alive){
@@ -258,4 +261,3 @@ int main(){
     }
     return 0;
 }
-
