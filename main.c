@@ -77,8 +77,8 @@ void* generate_car(void* arg) {
             cars[car_ID].pos = generator_pos;
 
             // Create a new thread for the car
-            pthread_mutex_unlock(&mutex[generator_pos]);
             pthread_create(&cars[car_ID].thread_id, NULL, move_car, (void *) &car_ID);
+            pthread_mutex_unlock(&mutex[generator_pos]);
 
             car_ID +=4;
 
